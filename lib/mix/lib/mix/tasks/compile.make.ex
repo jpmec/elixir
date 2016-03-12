@@ -45,24 +45,12 @@ defmodule Mix.Tasks.Compile.Make do
     makefile  = Keyword.get(config, :make_makefile, :default)
     targets   = Keyword.get(config, :make_targets, [])
     cwd       = Keyword.get(config, :make_cwd, ".")
-    make_env  = Keyword.get(config, :make_env, nil)
+    env       = Keyword.get(config, :make_env, System.get_env())
     error_msg = Keyword.get(config, :make_error_message, nil)
-
-    env = System.get_env()
-
-    if make_env do
-      make_env |> System.put_env
-    end
 
     args = args_for_makefile(exec, makefile) ++ targets
 
-    result = cmd(exec, args, cwd)
-
-    if env
-      env |> System.set_env
-    end
-
-    case result do
+    case cmd(exec, args, cwd, env) do
       0 ->
         :ok
       exit_status ->
@@ -72,10 +60,11 @@ defmodule Mix.Tasks.Compile.Make do
 
   # Runs `exec [args]` in `cwd` and prints the stdout and stderr in real time,
   # as soon as `exec` prints them (using `IO.Stream`).
-  defp cmd(exec, args, cwd) do
+  defp cmd(exec, args, cwd, env) do
     opts = [into: IO.stream(:stdio, :line),
             stderr_to_stdout: true,
-            cd: cwd]
+            cd: cwd,
+            env: env]
 
     {%IO.Stream{}, status} = System.cmd(executable(exec), args, opts)
     status
