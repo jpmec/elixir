@@ -45,11 +45,24 @@ defmodule Mix.Tasks.Compile.Make do
     makefile  = Keyword.get(config, :make_makefile, :default)
     targets   = Keyword.get(config, :make_targets, [])
     cwd       = Keyword.get(config, :make_cwd, ".")
+    make_env  = Keyword.get(config, :make_env, nil)
     error_msg = Keyword.get(config, :make_error_message, nil)
+
+    env = System.get_env()
+
+    if make_env do
+      make_env |> System.put_env
+    end
 
     args = args_for_makefile(exec, makefile) ++ targets
 
-    case cmd(exec, args, cwd) do
+    result = cmd(exec, args, cwd)
+
+    if env
+      env |> System.set_env
+    end
+
+    case result do
       0 ->
         :ok
       exit_status ->
