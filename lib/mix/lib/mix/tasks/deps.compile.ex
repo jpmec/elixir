@@ -167,11 +167,13 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
-    if command = opts[:compile] do
-      do_command(dep, config, command, true)
-    else
-      false
-    end
+    case opts[:compile] do
+      command when is_nil(command) ->
+        false
+      command when is_function(command) ->
+        do_function(dep, config, command, true)
+      command ->
+        do_command(dep, config, command, true)
   end
 
   defp do_command(%Mix.Dep{app: app} = dep, config, command, print_app?, env \\ []) do
@@ -183,6 +185,11 @@ defmodule Mix.Tasks.Deps.Compile do
           "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
       end
     end
+    true
+  end
+
+  defp do_function(%Mix.Dep{app: app} = dep, config, command, print_app?) do
+    Mix.Dep.in_dependency dep, command.(config)
     true
   end
 
